@@ -10,7 +10,13 @@ Meteor.startup(function () {
 
     var rand = colors[Math.floor(Math.random() * colors.length)];
 
-    var circ = Circles.insert({top: 100, left: 100, radius: 30, fill: rand, last_visit: (new Date()).getTime()});
+    var circ = Circles.insert({
+        top: 100,
+        left: 100,
+        radius: 30,
+        fill: rand,
+        last_visit: (new Date()).getTime()
+    });
 
     setInterval(function () {
         Circles.update({_id: circ}, {
@@ -32,55 +38,6 @@ Meteor.startup(function () {
             last_set = (new Date()).getTime();
         }
     });
-
-
-    setInterval(function () {
-        circles = Circles.find();
-        circles.forEach(function (item) {
-            speed = 1;
-
-            top_diff = Math.abs(item.to_top - item.top);
-            left_diff = Math.abs(item.to_left - item.left);
-
-            if (top_diff > 2 || left_diff > 2) {
-
-                if (top_diff < left_diff) {
-                    diff = top_diff / left_diff;
-                    go_top = diff;
-                    go_left = 1 - diff;
-                } else {
-                    diff = left_diff / top_diff;
-                    go_top = 1 - diff;
-                    go_left = diff;
-                }
-
-                if (item.to_top < item.top) {
-                    go_top = -go_top;
-                }
-
-                if (item.to_left < item.left) {
-                    go_left = -go_left;
-                }
-
-                how_long = (new Date()).getTime() - item.updated;
-
-                time_diff = (how_long / 15);
-
-                drawings[item._id].set({
-                    top: item.top + (go_top * time_diff),
-                    left: item.left + (go_left * time_diff)
-                });
-                canvas.renderAll();
-                Circles._collection.update({_id: item._id}, {
-                    $set: {
-                        top: item.top + (go_top * speed),
-                        left: item.left + (go_left * speed),
-                        updated: (new Date()).getTime()
-                    }
-                });
-            }
-        })
-    }, 15);
 
 
     Circles.find().observe({
@@ -105,6 +62,7 @@ Meteor.startup(function () {
         },
         removed: function (item) {
             canvas.remove(drawings[item._id]);
+            canvas.renderAll();
         }
     });
 
@@ -124,6 +82,7 @@ Meteor.startup(function () {
         },
         removed: function (item) {
             canvas.remove(foods[item._id]);
+            canvas.renderAll();
         }
     });
 });

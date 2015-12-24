@@ -28,41 +28,17 @@ Meteor.startup(function () {
 
         console.log('foods generated');
 
-        var how = 0;
-
-        var temp = {};
-
         setInterval(function () {
             Fiber(function () {
                 var circles = Circles.find();
                 circles.forEach(function (item) {
 
-                    speed = 1;
+                    speed = (200 - item.radius) / 113 + 0.5;
 
-                    item_top = item.top;
-
-
-                    if (temp[item._id] && temp[item._id].top != item.top) {
-                        item_top = temp[item._id].top;
-                    }
-
-                    item_left = item.left;
-
-                    if (temp[item._id] && temp[item._id].left != item.top) {
-                        item_left = temp[item._id].left;
-                    }
-
-                    updated = item.updated;
-
-                    if (temp[item._id] && temp[item._id].updated != item.updated) {
-                        updated = temp[item._id].updated;
-                    }
-
-                    top_diff = Math.abs(item.to_top - item_top);
-                    left_diff = Math.abs(item.to_left - item_left);
+                    top_diff = Math.abs(item.to_top - item.top);
+                    left_diff = Math.abs(item.to_left - item.left);
 
                     if (top_diff > 2 || left_diff > 2) {
-
                         if (top_diff < left_diff) {
                             diff = top_diff / left_diff;
                             go_top = diff;
@@ -73,75 +49,31 @@ Meteor.startup(function () {
                             go_left = diff;
                         }
 
-                        if (item.to_top < item_top) {
+                        if (item.to_top < item.top) {
                             go_top = -go_top;
                         }
 
-                        if (item.to_left < item_left) {
+                        if (item.to_left < item.left) {
                             go_left = -go_left;
                         }
 
-                        how_long = (new Date()).getTime() - updated;
-
-
-                        time_diff = (how_long / 15);
-
-
-                        temp[item._id] = {
-                            top: item_top + (go_top * time_diff),
-                            left: item_left + (go_left * time_diff),
-                            updated: (new Date()).getTime()
-                        };
-
-                        //item_left =
-
-                        if (how == 10) {
-                            Circles._collection.update({_id: item._id}, {
-                                $set: {
-                                    top: temp[item._id].top,
-                                    left: temp[item._id].left,
-                                    updated: (new Date()).getTime()
-                                }
-                            });
-                            delete temp[item._id];
-
-
-                        }
-                    }
-                    if (temp[item._id]) {
-                        temp[item._id].updated = (new Date()).getTime();
-                    } else {
-                        temp[item._id] = {
-                            top: item_top,
-                            left: item_left,
-                            updated: (new Date()).getTime()
-                        };
-
+                        Circles.update({_id: item._id}, {
+                            $set: {
+                                top: item.top + (go_top * speed),
+                                left: item.left + (go_left * speed)
+                            }
+                        });
                     }
 
+                    //Removing by timeout
                     if ((new Date()).getTime() - item.last_visit > 7000) {
                         Circles.remove({_id: item._id});
                     }
 
+                    //Eating foods
                     Foods.find().forEach(function (food) {
-
-
-                        item_top = item.top;
-
-
-                        if (temp[item._id] && temp[item._id].top != item.top) {
-                            item_top = temp[item._id].top;
-                        }
-
-                        item_left = item.left;
-
-                        if (temp[item._id] && temp[item._id].left != item.top) {
-                            item_left = temp[item._id].left;
-                        }
-
-
-                        diff_x = Math.abs(item_top - food.top);
-                        diff_y = Math.abs(item_left - food.left);
+                        diff_x = Math.abs(item.top - food.top - 5);
+                        diff_y = Math.abs(item.left - food.left - 5);
                         if (diff_x < item.radius && diff_y < item.radius) {
                             Foods.remove({_id: food._id});
                             top_food = getRandomInt(10, 790);
@@ -159,24 +91,10 @@ Meteor.startup(function () {
                         }
                     });
 
+                    //Eating Circles
                     Circles.find().forEach(function (another) {
-
-                        item_top = item.top;
-
-
-                        if (temp[item._id] && temp[item._id].top != item.top) {
-                            item_top = temp[item._id].top;
-                        }
-
-                        item_left = item.left;
-
-                        if (temp[item._id] && temp[item._id].left != item.top) {
-                            item_left = temp[item._id].left;
-                        }
-
-
-                        diff_x = Math.abs(item_top - another.top);
-                        diff_y = Math.abs(item_left - another.left);
+                        diff_x = Math.abs(item.top - another.top);
+                        diff_y = Math.abs(item.left - another.left);
                         if (item._id != another._id && diff_x < item.radius && diff_y < item.radius &&
                             (item.radius / another.radius) > 1.2) {
                             new_radius = item.radius + another.radius;
@@ -189,15 +107,9 @@ Meteor.startup(function () {
                             Circles.remove({_id: another._id});
                         }
                     });
-
                 });
-                if (how == 10) {
-                    how = -1;
-                }
-                how++;
+
             }).run();
-
-
         }, 15);
     }
 );
